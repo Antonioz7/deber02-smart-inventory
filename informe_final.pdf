@@ -1,0 +1,266 @@
+%PDF-1.4
+%âãÏÓ
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+2 0 obj
+<< /Length 3438 >>
+stream
+BT
+/F1 10 Tf
+50 748 Td
+13 TL
+(Informe final - Smart Inventory) Tj
+T*
+() Tj
+T*
+(Deber 02 | PostgreSQL | 25 de noviembre de 2026) Tj
+T*
+() Tj
+T*
+(1. Objetivo y alcance) Tj
+T*
+() Tj
+T*
+(Smart Inventory administra productos en lotes y ubicaciones, calcula el inventario disponible,) Tj
+T*
+(prioriza el picking por fecha de vencimiento \(FEFO\) y registra pedidos, reservas, movimientos) Tj
+T*
+(y recepciones de compra. La entrega comprende cinco scripts SQL, resultados de ocho consultas,) Tj
+T*
+(pruebas de integridad, una estrategia transaccional, vistas, índices y material de exposición.) Tj
+T*
+() Tj
+T*
+(2. Modelo relacional y normalización) Tj
+T*
+() Tj
+T*
+(El esquema separa producto, proveedor, bodega, ubicación, lote, existencia, pedido, línea de) Tj
+T*
+(pedido, reserva, movimiento, orden de compra y recepción. existencia_lote almacena físico y) Tj
+T*
+(reservado por combinación lote/ubicación; la disponibilidad se calcula como físico menos) Tj
+T*
+(reservado. Esta decisión mantiene saldo rápido y detalle trazable, pero obliga a sincronizar) Tj
+T*
+(las modificaciones del saldo con los movimientos.) Tj
+T*
+() Tj
+T*
+(Dependencias funcionales principales: sku to nombre, stock_minimo, stock_objetivo; lote_id to) Tj
+T*
+(sku, codigo_lote, fecha_vencimiento; \(lote_id, ubicacion_id\) to cantidad_fisica,) Tj
+T*
+(cantidad_reservada; linea_pedido_id to pedido_id, sku, cantidad_solicitada; linea_orden_id to) Tj
+T*
+(orden_compra_id, sku, cantidad_ordenada. En una relación desnormalizada, los datos del) Tj
+T*
+(producto repetidos por lote o línea causarían anomalías de actualización. La separación de) Tj
+T*
+(entidades y el uso de tablas de detalle resuelven esa repetición; las claves identifican las) Tj
+T*
+(filas y los atributos dependen de ellas. El diseño alcanza 3FN en las relaciones centrales. En) Tj
+T*
+(producto, lote y existencia, cada determinante documentado es una clave candidata, por lo que) Tj
+T*
+(satisfacen BCNF bajo las restricciones únicas declaradas.) Tj
+T*
+() Tj
+T*
+(3. Reglas e integridad) Tj
+T*
+() Tj
+T*
+(PK identifican filas; FK mantienen relaciones; UNIQUE impide códigos/nombres duplicados donde) Tj
+T*
+(corresponde; CHECK restringe cantidades y estados permitidos. Un trigger verifica que la fecha) Tj
+T*
+(de recepción no anteceda a la orden de compra. Las cinco pruebas observadas rechazaron FK) Tj
+T*
+(inexistente \(23503\), cantidad física negativa \(23514\), nombre de bodega repetido \(23505\),) Tj
+T*
+(estado de orden inválido \(23514\) y fecha de recepción anterior a la orden \(23514\). La matriz) Tj
+T*
+(registra también que la primera prueba de fecha se revirtió antes de añadir el trigger, y) Tj
+T*
+(volvió a fallar como se esperaba después.) Tj
+T*
+() Tj
+T*
+(4. Consultas y resultados observados) Tj
+T*
+() Tj
+T*
+(Las ocho consultas cubren saldo por lote/ubicación, lotes por vencer, picking FEFO,) Tj
+T*
+(reposición, trazabilidad, recepción parcial, rotación y nivel de servicio. El picking usa una) Tj
+T*
+(suma acumulada para repartir demanda entre lotes en orden de vencimiento. En las capturas) Tj
+T*
+(guardadas, distribuyó 30 unidades: 12 del lote AR-100 y 18 de AR-101. La consulta de) Tj
+T*
+(vencimientos dentro de 30 días devolvió cero filas. Reposición sugirió 26 unidades para) Tj
+T*
+(SKU-ACEITE \(disponible 4, objetivo 30\). El pedido de arroz mostró demanda de 30 pendiente. Las) Tj
+T*
+(capturas de rotación muestran cero despachos para los productos del seed, por lo que la) Tj
+ET
+endstream
+endobj
+3 0 obj
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
+endobj
+4 0 obj
+<< /Length 3252 >>
+stream
+BT
+/F1 10 Tf
+50 748 Td
+13 TL
+(rotación calculada es cero. La consulta de nivel de servicio muestra 30 solicitadas, cero) Tj
+T*
+(despachadas y nivel 0% para arroz. Ver las imágenes en evidencia_consultas/.) Tj
+T*
+() Tj
+T*
+(5. Transacción FEFO y concurrencia) Tj
+T*
+() Tj
+T*
+(04_transactions.sql crea reservar_fefo\(linea_pedido_id\). Bloquea la línea y las filas de) Tj
+T*
+(existencia elegibles con FOR UPDATE, las ordena por vencimiento, vuelve a calcular) Tj
+T*
+(disponibilidad y registra reserva y saldo reservado. Si el stock total es insuficiente, lanza) Tj
+T*
+(excepción dentro de la llamada; PostgreSQL revierte sus cambios con la transacción.) Tj
+T*
+() Tj
+T*
+(El fixture aislado plantea dos solicitudes de 6 contra 10 unidades vigentes: 4 en el primer) Tj
+T*
+(lote y 6 en el segundo. También contiene 99 unidades vencidas, excluidas del picking. El) Tj
+T*
+(resultado esperado es que una sesión confirme 6 \(4 + 2\), y la segunda, tras esperar el lock y) Tj
+T*
+(releer, falle por stock insuficiente; al final quedan 4. La prueba de dos sesiones no se) Tj
+T*
+(ejecutó/observó en esta entrega. EVIDENCIA_CONCURRENCIA.md incluye pasos para correrla y los) Tj
+T*
+(resultados esperados, no evidencia experimental. Por tanto, no se atribuyen tiempos de espera,) Tj
+T*
+(deadlocks ni reintentos observados.) Tj
+T*
+() Tj
+T*
+(6. Vistas, índices y plan de rendimiento) Tj
+T*
+() Tj
+T*
+(05_indexes_views.sql define vw_stock_disponible, para consultar saldo con trazabilidad hasta) Tj
+T*
+(ubicación/lote, y vw_reposicion_sugerida, que combina stock vigente y compras pendientes con) Tj
+T*
+(el objetivo. Incluye tres consultas y cuatro índices sobre lote, existencia, reserva y) Tj
+T*
+(movimiento. El script se ejecutó en DBeaver: se crearon las vistas e índices y se generaron) Tj
+T*
+(los seis planes EXPLAIN \(ANALYZE, BUFFERS\). Las mediciones visibles se registraron en) Tj
+T*
+(EVIDENCIA_RENDIMIENTO.md; no quedó copiado el plan anterior de la consulta de stock. Los datos) Tj
+T*
+(son pequeños y varios planes usan Seq Scan, por lo que las diferencias observadas no) Tj
+T*
+(demuestran rendimiento productivo. Índices consumen espacio y añaden costo de escritura.) Tj
+T*
+() Tj
+T*
+(7. Límites y decisiones) Tj
+T*
+() Tj
+T*
+(Las consultas de rotación usan saldo disponible actual como aproximación, pues no hay) Tj
+T*
+(snapshots históricos para calcular inventario promedio. El seed y las capturas prueban) Tj
+T*
+(funcionalidad, no carga productiva. El saldo guardado en existencia_lote y el libro de) Tj
+T*
+(movimiento deben mantenerse coherentes por los flujos de recepción, reserva, liberación,) Tj
+T*
+(ajuste y despacho; esta entrega no debe interpretarse como una conciliación automática) Tj
+T*
+(completa de ambos. La prueba de concurrencia con dos sesiones aún requiere ejecución y captura) Tj
+T*
+(en DBeaver; los planes de rendimiento sí se ejecutaron, con el límite de registro descrito) Tj
+T*
+(arriba.) Tj
+T*
+() Tj
+T*
+(8. Archivos de entrega) Tj
+T*
+() Tj
+T*
+(01_schema.sql, 02_seed.sql, 03_queries.sql, 04_transactions.sql, 05_indexes_views.sql,) Tj
+T*
+(README.md, matriz de integridad, plan, capturas y Word de resultados,) Tj
+T*
+(EVIDENCIA_CONCURRENCIA.md, EVIDENCIA_RENDIMIENTO.md y exposicion_sprint3.md.) Tj
+T*
+() Tj
+T*
+(Conclusión) Tj
+T*
+() Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 513 >>
+stream
+BT
+/F1 10 Tf
+50 748 Td
+13 TL
+(El repositorio contiene el modelo, las consultas y una implementación transaccional que define) Tj
+T*
+(cómo proteger reservas FEFO. Las consultas de Sprint 2, las reglas de integridad y los seis) Tj
+T*
+(planes EXPLAIN se ejecutaron; se guardaron resultados y mediciones disponibles. Para cerrar la) Tj
+T*
+(validación experimental de Sprint 3 falta ejecutar la prueba de dos sesiones y guardar su) Tj
+T*
+(evidencia, además de recuperar el plan anterior de la consulta de stock.) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R] /Count 3 >>
+endobj
+9 0 obj
+<< /Type /Catalog /Pages 8 0 R >>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000015 00000 n 
+0000000112 00000 n 
+0000003602 00000 n 
+0000003728 00000 n 
+0000007032 00000 n 
+0000007158 00000 n 
+0000007722 00000 n 
+0000007848 00000 n 
+0000007917 00000 n 
+trailer
+<< /Size 10 /Root 9 0 R >>
+startxref
+7966
+%%EOF
